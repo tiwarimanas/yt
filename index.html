@@ -1,0 +1,383 @@
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>YouTube Thumbnail Maker</title>
+    <!-- Google Fonts: Playfair Display and Lexend (Impact is available as a system font) -->
+    <link href="https://fonts.googleapis.com/css2?family=Lexend&family=Playfair+Display&display=swap" rel="stylesheet" />
+    <!-- Bootstrap CSS -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <!-- Bootstrap Icons -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css"
+      rel="stylesheet"
+    />
+    <!-- Fabric.js Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.2.4/fabric.min.js"></script>
+    <style>
+      /* Modern minimal aesthetic styles */
+      body {
+        background: #ffffff;
+        color: #333;
+        font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+      }
+      .navbar {
+        background: #ffffff;
+        border-bottom: 1px solid #eaeaea;
+      }
+      .navbar-brand {
+        color: #333 !important;
+        font-weight: bold;
+      }
+      .toolbar {
+        max-height: 90vh;
+        overflow-y: auto;
+        border-right: 1px solid #eaeaea;
+        padding: 1rem;
+        background: #f9f9f9;
+      }
+      .tool-btn {
+        margin-bottom: 1rem;
+      }
+      .canvas-container {
+        background: #fff;
+        position: relative;
+        overflow: hidden;
+      }
+      /* Scale the canvas responsively while retaining internal resolution */
+      #canvas {
+        width: 100% !important;
+        height: auto !important;
+        border: 1px solid #ddd;
+      }
+      .section-title {
+        font-size: 1.1rem;
+        font-weight: bold;
+        margin-top: 1rem;
+      }
+      .minimal-input {
+        border-radius: 4px;
+        border: 1px solid #ddd;
+      }
+    </style>
+  </head>
+  <body>
+    <nav class="navbar navbar-expand-lg mb-3">
+      <div class="container">
+        <a class="navbar-brand" href="#">Thumbnail Maker</a>
+      </div>
+    </nav>
+    <div class="container-fluid">
+      <div class="row">
+        <!-- Sidebar / Toolbar -->
+        <div class="col-md-3 toolbar">
+          <!-- YouTube URL Input & Load Button -->
+          <div class="mb-3">
+            <label for="yt-url" class="form-label">YouTube Video URL</label>
+            <div class="input-group">
+              <input
+                type="text"
+                class="form-control minimal-input"
+                id="yt-url"
+                placeholder="Enter YouTube URL"
+              />
+              <button class="btn btn-primary" id="load-thumb">Load</button>
+            </div>
+          </div>
+          <!-- Download Button -->
+          <button class="btn btn-outline-success w-100 tool-btn" id="download-image">
+            <i class="bi bi-download"></i> Download Image
+          </button>
+          <!-- Delete Selected Object -->
+          <button class="btn btn-outline-danger w-100 tool-btn" id="delete-selected">
+            <i class="bi bi-trash"></i> Delete Selected
+          </button>
+          <hr />
+
+          <!-- Text Tools -->
+          <div class="section-title">Text Tools</div>
+          <button class="btn btn-outline-secondary w-100 tool-btn" id="add-text">
+            <i class="bi bi-fonts"></i> Add Text
+          </button>
+          <div id="text-controls" style="display:none;">
+            <div class="mb-2">
+              <label for="font-family" class="form-label">Font Family</label>
+              <select id="font-family" class="form-select form-select-sm minimal-input">
+                <option value="Arial">Arial</option>
+                <option value="Helvetica">Helvetica</option>
+                <!-- Added Fonts -->
+                <option value="Impact">Impact</option>
+                <option value="'Playfair Display', serif">Playfair Display</option>
+                <option value="Lexend, sans-serif">Lexend</option>
+                <option value="'Times New Roman', serif">Times New Roman</option>
+                <option value="'Courier New', monospace">Courier New</option>
+              </select>
+            </div>
+            <div class="mb-2">
+              <label for="font-size" class="form-label">Font Size</label>
+              <input type="number" id="font-size" class="form-control form-control-sm minimal-input" value="30" />
+            </div>
+            <div class="mb-2">
+              <label for="font-color" class="form-label">Font Color</label>
+              <input type="color" id="font-color" class="form-control form-control-sm minimal-input" value="#000000" />
+            </div>
+            <div class="mb-2 form-check">
+              <input class="form-check-input" type="checkbox" id="font-bold" />
+              <label class="form-check-label" for="font-bold">Bold</label>
+            </div>
+            <div class="mb-2 form-check">
+              <input class="form-check-input" type="checkbox" id="font-italic" />
+              <label class="form-check-label" for="font-italic">Italic</label>
+            </div>
+            <!-- Predefined Text Shadows -->
+            <div class="mb-2">
+              <label for="preset-shadow" class="form-label">Preset Shadows</label>
+              <select id="preset-shadow" class="form-select form-select-sm minimal-input">
+                <option value="">None</option>
+                <option value="2,2,3,#888888">Subtle (2,2,3,#888888)</option>
+                <option value="4,4,5,#666666">Medium (4,4,5,#666666)</option>
+                <option value="6,6,7,#444444">Heavy (6,6,7,#444444)</option>
+              </select>
+            </div>
+            <div class="mb-2">
+              <label for="text-shadow" class="form-label">
+                Custom Shadow (offset-x,offset-y,blur,color)
+              </label>
+              <input
+                type="text"
+                id="text-shadow"
+                class="form-control form-control-sm minimal-input"
+                placeholder="e.g., 2,2,3,#888888"
+              />
+            </div>
+            <button class="btn btn-success btn-sm" id="apply-text-style">
+              Apply Text Style
+            </button>
+          </div>
+          <hr />
+
+          <!-- Shape Tools -->
+          <div class="section-title">Shape Tools</div>
+          <button class="btn btn-outline-secondary w-100 tool-btn" id="add-rect">
+            <i class="bi bi-square"></i> Add Rectangle
+          </button>
+          <button class="btn btn-outline-secondary w-100 tool-btn" id="add-circle">
+            <i class="bi bi-circle"></i> Add Circle
+          </button>
+          <div id="shape-controls" style="display:none;">
+            <div class="mb-2">
+              <label for="shape-fill" class="form-label">Fill Color</label>
+              <input type="color" id="shape-fill" class="form-control form-control-sm minimal-input" value="#FF0000" />
+            </div>
+            <div class="mb-2">
+              <label for="shape-stroke" class="form-label">Border Color</label>
+              <input type="color" id="shape-stroke" class="form-control form-control-sm minimal-input" value="#000000" />
+            </div>
+            <div class="mb-2">
+              <label for="shape-stroke-width" class="form-label">Border Width</label>
+              <input type="number" id="shape-stroke-width" class="form-control form-control-sm minimal-input" value="2" />
+            </div>
+            <div class="mb-2" id="rect-extra" style="display: none;">
+              <label for="corner-radius" class="form-label">Corner Rounding (Rectangle only)</label>
+              <input type="number" id="corner-radius" class="form-control form-control-sm minimal-input" value="5" />
+            </div>
+            <button class="btn btn-success btn-sm" id="apply-shape-style">
+              Apply Shape Style
+            </button>
+          </div>
+        </div>
+        <!-- Canvas Panel -->
+        <div class="col-md-9">
+          <div class="canvas-container p-2">
+            <canvas id="canvas" width="1280" height="720"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bootstrap Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+      // Initialize Fabric.js canvas
+      const canvas = new fabric.Canvas("canvas");
+      let bgImage = null; // store background thumbnail
+
+      // Extract YouTube Video ID using corrected regex
+      function extractVideoID(url) {
+        const regex = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([^\s&]+)/;
+        const match = url.match(regex);
+        return match && match[1] ? match[1] : null;
+      }
+
+      // Load YouTube thumbnail as background image and fit to canvas
+      function loadThumbnail() {
+        const url = document.getElementById("yt-url").value.trim();
+        const videoID = extractVideoID(url);
+        if (!videoID) {
+          alert("Invalid YouTube URL.");
+          return;
+        }
+        const thumbUrl = `https://img.youtube.com/vi/${videoID}/maxresdefault.jpg`;
+        fabric.Image.fromURL(
+          thumbUrl,
+          function (img) {
+            img.set({ selectable: false });
+            const canvasWidth = canvas.getWidth();
+            const canvasHeight = canvas.getHeight();
+            img.scaleToWidth(canvasWidth);
+            if (img.getScaledHeight() < canvasHeight) {
+              img.scaleToHeight(canvasHeight);
+            }
+            canvas.setBackgroundImage(img, canvas.renderAll.bind(canvas));
+            bgImage = img;
+          },
+          { crossOrigin: "anonymous" }
+        );
+      }
+      document.getElementById("load-thumb").addEventListener("click", loadThumbnail);
+
+      // Download the canvas as a PNG image
+      document.getElementById("download-image").addEventListener("click", function () {
+        const dataURL = canvas.toDataURL({ format: "png", quality: 1.0 });
+        const link = document.createElement("a");
+        link.href = dataURL;
+        link.download = "thumbnail.png";
+        link.click();
+      });
+
+      // Delete the selected object (except background)
+      document.getElementById("delete-selected").addEventListener("click", function () {
+        const activeObject = canvas.getActiveObject();
+        if (activeObject) {
+          if (activeObject === bgImage) {
+            alert("Cannot delete the background image.");
+            return;
+          }
+          canvas.remove(activeObject);
+        }
+      });
+
+      // Add text object to canvas
+      document.getElementById("add-text").addEventListener("click", function () {
+        const text = new fabric.IText("Double-click to edit", {
+          left: 50,
+          top: 50,
+          fill: "#000000",
+          fontSize: 30,
+          selectable: true,
+          hasControls: true,
+        });
+        canvas.add(text);
+        canvas.setActiveObject(text);
+        document.getElementById("text-controls").style.display = "block";
+        document.getElementById("shape-controls").style.display = "none";
+      });
+
+      // Apply text styling (including preset or custom shadow)
+      document.getElementById("apply-text-style").addEventListener("click", function () {
+        const activeObject = canvas.getActiveObject();
+        if (activeObject && activeObject.type === "i-text") {
+          activeObject.set("fontFamily", document.getElementById("font-family").value);
+          activeObject.set("fontSize", parseInt(document.getElementById("font-size").value, 10));
+          activeObject.set("fill", document.getElementById("font-color").value);
+          activeObject.set("fontWeight", document.getElementById("font-bold").checked ? "bold" : "normal");
+          activeObject.set("fontStyle", document.getElementById("font-italic").checked ? "italic" : "normal");
+          let shadowData = document.getElementById("preset-shadow").value;
+          if (!shadowData) {
+            shadowData = document.getElementById("text-shadow").value.trim();
+          }
+          if (shadowData) {
+            const parts = shadowData.split(",");
+            if (parts.length === 4) {
+              activeObject.set("shadow", {
+                offsetX: parseInt(parts[0], 10),
+                offsetY: parseInt(parts[1], 10),
+                blur: parseInt(parts[2], 10),
+                color: parts[3].trim(),
+              });
+            }
+          } else {
+            activeObject.set("shadow", null);
+          }
+          canvas.renderAll();
+        }
+      });
+
+      // Add rectangle object to canvas
+      document.getElementById("add-rect").addEventListener("click", function () {
+        const rect = new fabric.Rect({
+          left: 100,
+          top: 100,
+          fill: document.getElementById("shape-fill").value,
+          stroke: document.getElementById("shape-stroke").value,
+          strokeWidth: parseInt(document.getElementById("shape-stroke-width").value, 10),
+          width: 150,
+          height: 100,
+          rx: parseInt(document.getElementById("corner-radius").value, 10),
+          selectable: true,
+        });
+        canvas.add(rect);
+        canvas.setActiveObject(rect);
+        document.getElementById("shape-controls").style.display = "block";
+        document.getElementById("rect-extra").style.display = "block";
+        document.getElementById("text-controls").style.display = "none";
+      });
+
+      // Add circle object to canvas
+      document.getElementById("add-circle").addEventListener("click", function () {
+        const circle = new fabric.Circle({
+          left: 150,
+          top: 150,
+          radius: 50,
+          fill: document.getElementById("shape-fill").value,
+          stroke: document.getElementById("shape-stroke").value,
+          strokeWidth: parseInt(document.getElementById("shape-stroke-width").value, 10),
+          selectable: true,
+        });
+        canvas.add(circle);
+        canvas.setActiveObject(circle);
+        document.getElementById("shape-controls").style.display = "block";
+        document.getElementById("rect-extra").style.display = "none";
+        document.getElementById("text-controls").style.display = "none";
+      });
+
+      // Apply shape styling to the selected shape
+      document.getElementById("apply-shape-style").addEventListener("click", function () {
+        const activeObject = canvas.getActiveObject();
+        if (activeObject && (activeObject.type === "rect" || activeObject.type === "circle")) {
+          activeObject.set("fill", document.getElementById("shape-fill").value);
+          activeObject.set("stroke", document.getElementById("shape-stroke").value);
+          activeObject.set("strokeWidth", parseInt(document.getElementById("shape-stroke-width").value, 10));
+          if (activeObject.type === "rect") {
+            activeObject.set("rx", parseInt(document.getElementById("corner-radius").value, 10));
+          }
+          canvas.renderAll();
+        }
+      });
+
+      // Update toolbar visibility based on selection
+      canvas.on("selection:created", function () {
+        const activeObject = canvas.getActiveObject();
+        if (activeObject) {
+          if (activeObject.type === "i-text") {
+            document.getElementById("text-controls").style.display = "block";
+            document.getElementById("shape-controls").style.display = "none";
+          } else if (activeObject.type === "rect" || activeObject.type === "circle") {
+            document.getElementById("shape-controls").style.display = "block";
+            document.getElementById("rect-extra").style.display = activeObject.type === "rect" ? "block" : "none";
+            document.getElementById("text-controls").style.display = "none";
+          }
+        }
+      });
+      canvas.on("selection:cleared", function () {
+        document.getElementById("text-controls").style.display = "none";
+        document.getElementById("shape-controls").style.display = "none";
+      });
+    </script>
+  </body>
+</html>

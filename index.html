@@ -1,383 +1,364 @@
-
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>YouTube Thumbnail Maker</title>
-    <!-- Google Fonts: Playfair Display and Lexend (Impact is available as a system font) -->
-    <link href="https://fonts.googleapis.com/css2?family=Lexend&family=Playfair+Display&display=swap" rel="stylesheet" />
-    <!-- Bootstrap CSS -->
-    <link
-      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
-      rel="stylesheet"
-    />
-    <!-- Bootstrap Icons -->
-    <link
-      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css"
-      rel="stylesheet"
-    />
-    <!-- Fabric.js Library -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.2.4/fabric.min.js"></script>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube Thumbnail Customizer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-      /* Modern minimal aesthetic styles */
-      body {
-        background: #ffffff;
-        color: #333;
-        font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
-      }
-      .navbar {
-        background: #ffffff;
-        border-bottom: 1px solid #eaeaea;
-      }
-      .navbar-brand {
-        color: #333 !important;
-        font-weight: bold;
-      }
-      .toolbar {
-        max-height: 90vh;
-        overflow-y: auto;
-        border-right: 1px solid #eaeaea;
-        padding: 1rem;
-        background: #f9f9f9;
-      }
-      .tool-btn {
-        margin-bottom: 1rem;
-      }
-      .canvas-container {
-        background: #fff;
-        position: relative;
-        overflow: hidden;
-      }
-      /* Scale the canvas responsively while retaining internal resolution */
-      #canvas {
-        width: 100% !important;
-        height: auto !important;
-        border: 1px solid #ddd;
-      }
-      .section-title {
-        font-size: 1.1rem;
-        font-weight: bold;
-        margin-top: 1rem;
-      }
-      .minimal-input {
-        border-radius: 4px;
-        border: 1px solid #ddd;
-      }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6; /* Tailwind gray-100 */
+        }
+        /* Custom scrollbar for aesthetics */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+        .input-field {
+            @apply w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition duration-150 ease-in-out;
+        }
+        .btn {
+            @apply px-6 py-3 rounded-lg font-semibold shadow-md transition duration-150 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2;
+        }
+        .btn-primary {
+            @apply bg-indigo-600 text-white hover:bg-indigo-700 focus:ring-indigo-500;
+        }
+        /* .btn-secondary class was for update button, can be removed or repurposed if needed */
+        .btn-disabled {
+            @apply bg-gray-300 text-gray-500 cursor-not-allowed;
+        }
+        canvas {
+            max-width: 100%;
+            height: auto;
+            display: block; /* Removes extra space below canvas */
+            border-radius: 0.5rem; /* Tailwind rounded-lg */
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); /* Tailwind shadow-md */
+        }
+        .hidden-initially {
+            display: none;
+        }
     </style>
-  </head>
-  <body>
-    <nav class="navbar navbar-expand-lg mb-3">
-      <div class="container">
-        <a class="navbar-brand" href="#">Thumbnail Maker</a>
-      </div>
-    </nav>
-    <div class="container-fluid">
-      <div class="row">
-        <!-- Sidebar / Toolbar -->
-        <div class="col-md-3 toolbar">
-          <!-- YouTube URL Input & Load Button -->
-          <div class="mb-3">
-            <label for="yt-url" class="form-label">YouTube Video URL</label>
-            <div class="input-group">
-              <input
-                type="text"
-                class="form-control minimal-input"
-                id="yt-url"
-                placeholder="Enter YouTube URL"
-              />
-              <button class="btn btn-primary" id="load-thumb">Load</button>
-            </div>
-          </div>
-          <!-- Download Button -->
-          <button class="btn btn-outline-success w-100 tool-btn" id="download-image">
-            <i class="bi bi-download"></i> Download Image
-          </button>
-          <!-- Delete Selected Object -->
-          <button class="btn btn-outline-danger w-100 tool-btn" id="delete-selected">
-            <i class="bi bi-trash"></i> Delete Selected
-          </button>
-          <hr />
+</head>
+<body class="min-h-screen flex flex-col items-center justify-center p-4">
 
-          <!-- Text Tools -->
-          <div class="section-title">Text Tools</div>
-          <button class="btn btn-outline-secondary w-100 tool-btn" id="add-text">
-            <i class="bi bi-fonts"></i> Add Text
-          </button>
-          <div id="text-controls" style="display:none;">
-            <div class="mb-2">
-              <label for="font-family" class="form-label">Font Family</label>
-              <select id="font-family" class="form-select form-select-sm minimal-input">
-                <option value="Arial">Arial</option>
-                <option value="Helvetica">Helvetica</option>
-                <!-- Added Fonts -->
-                <option value="Impact">Impact</option>
-                <option value="'Playfair Display', serif">Playfair Display</option>
-                <option value="Lexend, sans-serif">Lexend</option>
-                <option value="'Times New Roman', serif">Times New Roman</option>
-                <option value="'Courier New', monospace">Courier New</option>
-              </select>
-            </div>
-            <div class="mb-2">
-              <label for="font-size" class="form-label">Font Size</label>
-              <input type="number" id="font-size" class="form-control form-control-sm minimal-input" value="30" />
-            </div>
-            <div class="mb-2">
-              <label for="font-color" class="form-label">Font Color</label>
-              <input type="color" id="font-color" class="form-control form-control-sm minimal-input" value="#000000" />
-            </div>
-            <div class="mb-2 form-check">
-              <input class="form-check-input" type="checkbox" id="font-bold" />
-              <label class="form-check-label" for="font-bold">Bold</label>
-            </div>
-            <div class="mb-2 form-check">
-              <input class="form-check-input" type="checkbox" id="font-italic" />
-              <label class="form-check-label" for="font-italic">Italic</label>
-            </div>
-            <!-- Predefined Text Shadows -->
-            <div class="mb-2">
-              <label for="preset-shadow" class="form-label">Preset Shadows</label>
-              <select id="preset-shadow" class="form-select form-select-sm minimal-input">
-                <option value="">None</option>
-                <option value="2,2,3,#888888">Subtle (2,2,3,#888888)</option>
-                <option value="4,4,5,#666666">Medium (4,4,5,#666666)</option>
-                <option value="6,6,7,#444444">Heavy (6,6,7,#444444)</option>
-              </select>
-            </div>
-            <div class="mb-2">
-              <label for="text-shadow" class="form-label">
-                Custom Shadow (offset-x,offset-y,blur,color)
-              </label>
-              <input
-                type="text"
-                id="text-shadow"
-                class="form-control form-control-sm minimal-input"
-                placeholder="e.g., 2,2,3,#888888"
-              />
-            </div>
-            <button class="btn btn-success btn-sm" id="apply-text-style">
-              Apply Text Style
-            </button>
-          </div>
-          <hr />
+    <div class="bg-white p-6 sm:p-8 rounded-xl shadow-2xl w-full max-w-2xl space-y-6">
+        <header class="text-center">
+            <h1 class="text-3xl sm:text-4xl font-bold text-gray-800">YouTube Thumbnail Customizer</h1>
+            <p class="text-gray-600 mt-2">Fetch, customize with text & effects, and download!</p>
+        </header>
 
-          <!-- Shape Tools -->
-          <div class="section-title">Shape Tools</div>
-          <button class="btn btn-outline-secondary w-100 tool-btn" id="add-rect">
-            <i class="bi bi-square"></i> Add Rectangle
-          </button>
-          <button class="btn btn-outline-secondary w-100 tool-btn" id="add-circle">
-            <i class="bi bi-circle"></i> Add Circle
-          </button>
-          <div id="shape-controls" style="display:none;">
-            <div class="mb-2">
-              <label for="shape-fill" class="form-label">Fill Color</label>
-              <input type="color" id="shape-fill" class="form-control form-control-sm minimal-input" value="#FF0000" />
+        <section id="urlSection" class="space-y-3">
+            <div>
+                <label for="youtubeUrl" class="block text-sm font-medium text-gray-700 mb-1">YouTube Video URL:</label>
+                <input type="url" id="youtubeUrl" class="input-field" placeholder="e.g., https://www.youtube.com/watch?v=VIDEO_ID">
             </div>
-            <div class="mb-2">
-              <label for="shape-stroke" class="form-label">Border Color</label>
-              <input type="color" id="shape-stroke" class="form-control form-control-sm minimal-input" value="#000000" />
+            <button id="fetchThumbnailBtn" class="btn btn-primary w-full">Fetch Thumbnail</button>
+        </section>
+
+        <div id="messageArea" class="text-sm text-center p-3 rounded-md hidden-initially"></div>
+
+        <section id="customizationSection" class="space-y-4 hidden-initially">
+            <div>
+                <h2 class="text-xl font-semibold text-gray-700 mb-2">Customize Thumbnail</h2>
+                <canvas id="thumbnailCanvas" class="mx-auto"></canvas>
             </div>
-            <div class="mb-2">
-              <label for="shape-stroke-width" class="form-label">Border Width</label>
-              <input type="number" id="shape-stroke-width" class="form-control form-control-sm minimal-input" value="2" />
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label for="titleText" class="block text-sm font-medium text-gray-700 mb-1">Title Text (Bottom Left):</label>
+                    <input type="text" id="titleText" class="input-field" placeholder="Enter main title">
+                </div>
+                <div>
+                    <label for="overlayText" class="block text-sm font-medium text-gray-700 mb-1">Overlay Text (Top Right):</label>
+                    <input type="text" id="overlayText" class="input-field" placeholder="Enter small overlay text">
+                </div>
             </div>
-            <div class="mb-2" id="rect-extra" style="display: none;">
-              <label for="corner-radius" class="form-label">Corner Rounding (Rectangle only)</label>
-              <input type="number" id="corner-radius" class="form-control form-control-sm minimal-input" value="5" />
+             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label for="titleFontSize" class="block text-sm font-medium text-gray-700 mb-1">Title Font Size (px):</label>
+                    <input type="number" id="titleFontSize" class="input-field" value="70">
+                </div>
+                <div>
+                    <label for="overlayFontSize" class="block text-sm font-medium text-gray-700 mb-1">Overlay Font Size (px):</label>
+                    <input type="number" id="overlayFontSize" class="input-field" value="40">
+                </div>
             </div>
-            <button class="btn btn-success btn-sm" id="apply-shape-style">
-              Apply Shape Style
-            </button>
-          </div>
-        </div>
-        <!-- Canvas Panel -->
-        <div class="col-md-9">
-          <div class="canvas-container p-2">
-            <canvas id="canvas" width="1280" height="720"></canvas>
-          </div>
-        </div>
-      </div>
+
+            <button id="downloadBtn" class="btn btn-primary w-full mt-2" disabled>Download Thumbnail</button>
+        </section>
+
+        <footer class="text-center text-xs text-gray-500 pt-4 border-t border-gray-200">
+            <p>© <span id="currentYear"></span> Thumbnail Customizer. For educational purposes.</p>
+        </footer>
     </div>
 
-    <!-- Bootstrap Bundle with Popper -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-      // Initialize Fabric.js canvas
-      const canvas = new fabric.Canvas("canvas");
-      let bgImage = null; // store background thumbnail
+        // DOM Elements
+        const youtubeUrlInput = document.getElementById('youtubeUrl');
+        const fetchThumbnailBtn = document.getElementById('fetchThumbnailBtn');
+        const messageArea = document.getElementById('messageArea');
+        const customizationSection = document.getElementById('customizationSection');
+        const canvas = document.getElementById('thumbnailCanvas');
+        const ctx = canvas.getContext('2d');
+        const titleTextInput = document.getElementById('titleText');
+        const overlayTextInput = document.getElementById('overlayText');
+        const titleFontSizeInput = document.getElementById('titleFontSize');
+        const overlayFontSizeInput = document.getElementById('overlayFontSize');
+        const downloadBtn = document.getElementById('downloadBtn');
+        document.getElementById('currentYear').textContent = new Date().getFullYear();
 
-      // Extract YouTube Video ID using corrected regex
-      function extractVideoID(url) {
-        const regex = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([^\s&]+)/;
-        const match = url.match(regex);
-        return match && match[1] ? match[1] : null;
-      }
+        let currentImage = null; // To store the loaded thumbnail Image object
+        let currentVideoId = null;
 
-      // Load YouTube thumbnail as background image and fit to canvas
-      function loadThumbnail() {
-        const url = document.getElementById("yt-url").value.trim();
-        const videoID = extractVideoID(url);
-        if (!videoID) {
-          alert("Invalid YouTube URL.");
-          return;
+        // --- Utility Functions ---
+        function getYoutubeVideoId(url) {
+            if (!url) return null;
+            const regex = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?)\/|\S*?[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
+            const match = url.match(regex);
+            return match ? match[1] : null;
         }
-        const thumbUrl = `https://img.youtube.com/vi/${videoID}/maxresdefault.jpg`;
-        fabric.Image.fromURL(
-          thumbUrl,
-          function (img) {
-            img.set({ selectable: false });
-            const canvasWidth = canvas.getWidth();
-            const canvasHeight = canvas.getHeight();
-            img.scaleToWidth(canvasWidth);
-            if (img.getScaledHeight() < canvasHeight) {
-              img.scaleToHeight(canvasHeight);
+
+        function showMessage(message, isError = false) {
+            messageArea.textContent = message;
+            messageArea.classList.remove('hidden-initially', 'bg-red-100', 'text-red-700', 'bg-green-100', 'text-green-700');
+            if (isError) {
+                messageArea.classList.add('bg-red-100', 'text-red-700');
+            } else {
+                messageArea.classList.add('bg-green-100', 'text-green-700');
             }
-            canvas.setBackgroundImage(img, canvas.renderAll.bind(canvas));
-            bgImage = img;
-          },
-          { crossOrigin: "anonymous" }
-        );
-      }
-      document.getElementById("load-thumb").addEventListener("click", loadThumbnail);
-
-      // Download the canvas as a PNG image
-      document.getElementById("download-image").addEventListener("click", function () {
-        const dataURL = canvas.toDataURL({ format: "png", quality: 1.0 });
-        const link = document.createElement("a");
-        link.href = dataURL;
-        link.download = "thumbnail.png";
-        link.click();
-      });
-
-      // Delete the selected object (except background)
-      document.getElementById("delete-selected").addEventListener("click", function () {
-        const activeObject = canvas.getActiveObject();
-        if (activeObject) {
-          if (activeObject === bgImage) {
-            alert("Cannot delete the background image.");
-            return;
-          }
-          canvas.remove(activeObject);
+            messageArea.style.display = 'block';
         }
-      });
 
-      // Add text object to canvas
-      document.getElementById("add-text").addEventListener("click", function () {
-        const text = new fabric.IText("Double-click to edit", {
-          left: 50,
-          top: 50,
-          fill: "#000000",
-          fontSize: 30,
-          selectable: true,
-          hasControls: true,
-        });
-        canvas.add(text);
-        canvas.setActiveObject(text);
-        document.getElementById("text-controls").style.display = "block";
-        document.getElementById("shape-controls").style.display = "none";
-      });
+        function hideMessage() {
+            messageArea.style.display = 'none';
+            messageArea.textContent = '';
+        }
 
-      // Apply text styling (including preset or custom shadow)
-      document.getElementById("apply-text-style").addEventListener("click", function () {
-        const activeObject = canvas.getActiveObject();
-        if (activeObject && activeObject.type === "i-text") {
-          activeObject.set("fontFamily", document.getElementById("font-family").value);
-          activeObject.set("fontSize", parseInt(document.getElementById("font-size").value, 10));
-          activeObject.set("fill", document.getElementById("font-color").value);
-          activeObject.set("fontWeight", document.getElementById("font-bold").checked ? "bold" : "normal");
-          activeObject.set("fontStyle", document.getElementById("font-italic").checked ? "italic" : "normal");
-          let shadowData = document.getElementById("preset-shadow").value;
-          if (!shadowData) {
-            shadowData = document.getElementById("text-shadow").value.trim();
-          }
-          if (shadowData) {
-            const parts = shadowData.split(",");
-            if (parts.length === 4) {
-              activeObject.set("shadow", {
-                offsetX: parseInt(parts[0], 10),
-                offsetY: parseInt(parts[1], 10),
-                blur: parseInt(parts[2], 10),
-                color: parts[3].trim(),
-              });
+        // Helper function to get wrapped lines (without drawing)
+        function getWrappedLines(context, text, maxWidth) {
+            if (!text || text.trim() === "") return [];
+            const words = text.split(' ');
+            let currentLine = "";
+            const lines = [];
+
+            for (let i = 0; i < words.length; i++) {
+                const word = words[i];
+                // Check if currentLine is empty to avoid leading space
+                const testLine = currentLine === "" ? word : currentLine + " " + word;
+                const metrics = context.measureText(testLine);
+
+                if (metrics.width > maxWidth && currentLine !== "") {
+                    lines.push(currentLine);
+                    currentLine = word;
+                } else {
+                    currentLine = testLine;
+                }
             }
-          } else {
-            activeObject.set("shadow", null);
-          }
-          canvas.renderAll();
+            lines.push(currentLine); // Add the last accumulated line
+            return lines;
         }
-      });
+        
+        // --- Core Logic ---
+        async function fetchThumbnail() {
+            hideMessage();
+            const url = youtubeUrlInput.value.trim();
+            currentVideoId = getYoutubeVideoId(url);
 
-      // Add rectangle object to canvas
-      document.getElementById("add-rect").addEventListener("click", function () {
-        const rect = new fabric.Rect({
-          left: 100,
-          top: 100,
-          fill: document.getElementById("shape-fill").value,
-          stroke: document.getElementById("shape-stroke").value,
-          strokeWidth: parseInt(document.getElementById("shape-stroke-width").value, 10),
-          width: 150,
-          height: 100,
-          rx: parseInt(document.getElementById("corner-radius").value, 10),
-          selectable: true,
-        });
-        canvas.add(rect);
-        canvas.setActiveObject(rect);
-        document.getElementById("shape-controls").style.display = "block";
-        document.getElementById("rect-extra").style.display = "block";
-        document.getElementById("text-controls").style.display = "none";
-      });
+            if (!currentVideoId) {
+                showMessage('Invalid YouTube URL. Please check and try again.', true);
+                return;
+            }
 
-      // Add circle object to canvas
-      document.getElementById("add-circle").addEventListener("click", function () {
-        const circle = new fabric.Circle({
-          left: 150,
-          top: 150,
-          radius: 50,
-          fill: document.getElementById("shape-fill").value,
-          stroke: document.getElementById("shape-stroke").value,
-          strokeWidth: parseInt(document.getElementById("shape-stroke-width").value, 10),
-          selectable: true,
-        });
-        canvas.add(circle);
-        canvas.setActiveObject(circle);
-        document.getElementById("shape-controls").style.display = "block";
-        document.getElementById("rect-extra").style.display = "none";
-        document.getElementById("text-controls").style.display = "none";
-      });
+            fetchThumbnailBtn.disabled = true;
+            fetchThumbnailBtn.textContent = 'Fetching...';
+            showMessage('Fetching thumbnail...', false);
 
-      // Apply shape styling to the selected shape
-      document.getElementById("apply-shape-style").addEventListener("click", function () {
-        const activeObject = canvas.getActiveObject();
-        if (activeObject && (activeObject.type === "rect" || activeObject.type === "circle")) {
-          activeObject.set("fill", document.getElementById("shape-fill").value);
-          activeObject.set("stroke", document.getElementById("shape-stroke").value);
-          activeObject.set("strokeWidth", parseInt(document.getElementById("shape-stroke-width").value, 10));
-          if (activeObject.type === "rect") {
-            activeObject.set("rx", parseInt(document.getElementById("corner-radius").value, 10));
-          }
-          canvas.renderAll();
+            const tryLoadImage = (src) => {
+                return new Promise((resolve, reject) => {
+                    const img = new Image();
+                    img.crossOrigin = "anonymous"; // Important for canvas toDataURL
+                    img.onload = () => resolve(img);
+                    img.onerror = (err) => {
+                        console.error(`Failed to load image: ${src}`, err);
+                        reject(new Error(`Failed to load image: ${src.substring(0,50)}...`));
+                    }
+                    img.src = src;
+                });
+            };
+
+            let loadedSuccessfully = false;
+            try {
+                // Try loading max resolution first
+                try {
+                    currentImage = await tryLoadImage(`https://img.youtube.com/vi/${currentVideoId}/maxresdefault.jpg`);
+                    loadedSuccessfully = true;
+                } catch (e) {
+                    console.warn('Max resolution thumbnail failed, trying SD...');
+                    try {
+                        currentImage = await tryLoadImage(`https://img.youtube.com/vi/${currentVideoId}/sddefault.jpg`);
+                        loadedSuccessfully = true;
+                    } catch (e2) {
+                        console.warn('SD resolution thumbnail failed, trying HQ...');
+                        currentImage = await tryLoadImage(`https://img.youtube.com/vi/${currentVideoId}/hqdefault.jpg`);
+                        loadedSuccessfully = true; // Assume hqdefault will load, or throw
+                    }
+                }
+
+                canvas.width = currentImage.naturalWidth;
+                canvas.height = currentImage.naturalHeight;
+                
+                drawCanvas(); // Initial draw with image and any default/existing text
+
+                customizationSection.style.display = 'block';
+                downloadBtn.disabled = false; // Enable download once image is ready
+                showMessage('Thumbnail loaded! Add or modify your text.', false);
+
+            } catch (error) {
+                console.error('Thumbnail fetch error:', error);
+                showMessage(error.message || 'Failed to load thumbnail. The video might be private, deleted, or have no standard thumbnails.', true);
+                currentImage = null;
+                customizationSection.style.display = 'none';
+                downloadBtn.disabled = true;
+            } finally {
+                fetchThumbnailBtn.disabled = false;
+                fetchThumbnailBtn.textContent = 'Fetch Thumbnail';
+            }
         }
-      });
 
-      // Update toolbar visibility based on selection
-      canvas.on("selection:created", function () {
-        const activeObject = canvas.getActiveObject();
-        if (activeObject) {
-          if (activeObject.type === "i-text") {
-            document.getElementById("text-controls").style.display = "block";
-            document.getElementById("shape-controls").style.display = "none";
-          } else if (activeObject.type === "rect" || activeObject.type === "circle") {
-            document.getElementById("shape-controls").style.display = "block";
-            document.getElementById("rect-extra").style.display = activeObject.type === "rect" ? "block" : "none";
-            document.getElementById("text-controls").style.display = "none";
-          }
+        function drawCanvas() {
+            if (!currentImage || !canvas || !ctx) {
+                // console.warn("Canvas or image not ready for drawing.");
+                // If no image, ensure download is disabled and customization is hidden
+                if (!currentImage) {
+                    downloadBtn.disabled = true;
+                    // customizationSection.style.display = 'none'; // Keep customization visible if user wants to type text before fetching
+                }
+                return;
+            }
+
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // 1. Draw base image
+            ctx.drawImage(currentImage, 0, 0, canvas.width, canvas.height);
+
+            // 2. Draw Dark Fade Effect (Bottom Gradient)
+            const gradientHeight = canvas.height * 0.5; // Covers bottom 50%
+            const gradient = ctx.createLinearGradient(0, canvas.height - gradientHeight, 0, canvas.height);
+            gradient.addColorStop(0, 'rgba(0,0,0,0)');    // Transparent at the top of the gradient
+            gradient.addColorStop(1, 'rgba(0,0,0,0.75)'); // Semi-transparent black at the bottom
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, canvas.height - gradientHeight, canvas.width, gradientHeight);
+
+
+            // Get text and font sizes
+            const title = titleTextInput.value; // No trim here, allow leading/trailing spaces if user wants for some reason
+            const overlayText = overlayTextInput.value;
+            const titleFontSize = parseInt(titleFontSizeInput.value) || 70;
+            const overlayFontSize = parseInt(overlayFontSizeInput.value) || 40;
+
+            // Common text baseline for wrapped text drawing
+            ctx.textBaseline = 'top';
+
+            // --- 3. Draw Title Text (Bottom Left, Wrapped) ---
+            if (title) {
+                ctx.font = `bold ${titleFontSize}px Inter, Arial, sans-serif`;
+                ctx.fillStyle = 'white';
+                ctx.strokeStyle = 'black';
+                ctx.lineWidth = Math.max(1.5, titleFontSize / 25); // Slightly thicker stroke for better visibility
+                ctx.textAlign = 'left';
+
+                const titleLineHeight = titleFontSize * 1.15; // Adjust line height for readability
+                const titleLeftPadding = canvas.width * 0.04; 
+                const titleBottomPadding = canvas.height * 0.04; 
+                const titleMaxWidth = canvas.width - (2 * titleLeftPadding);
+
+                const titleLines = getWrappedLines(ctx, title, titleMaxWidth);
+                const totalTitleHeight = titleLines.length * titleLineHeight - (titleLines.length > 0 ? (titleLineHeight - titleFontSize) : 0) ; // More accurate height
+                
+                let titleStartY = canvas.height - totalTitleHeight - titleBottomPadding;
+                
+                // Optional: Prevent title from starting too high if gradient is smaller
+                // const minTitleYForGradient = canvas.height - gradientHeight;
+                // if (titleStartY < minTitleYForGradient) titleStartY = minTitleYForGradient;
+
+
+                for (let i = 0; i < titleLines.length; i++) {
+                    const lineY = titleStartY + (i * titleLineHeight);
+                    ctx.strokeText(titleLines[i], titleLeftPadding, lineY);
+                    ctx.fillText(titleLines[i], titleLeftPadding, lineY);
+                }
+            }
+
+            // --- 4. Draw Overlay Text (Top Right, Wrapped) ---
+            if (overlayText) {
+                ctx.font = `normal ${overlayFontSize}px Inter, Arial, sans-serif`;
+                ctx.fillStyle = 'white';
+                ctx.strokeStyle = 'black';
+                ctx.lineWidth = Math.max(1, overlayFontSize / 25);
+                ctx.textAlign = 'right';
+
+                const overlayLineHeight = overlayFontSize * 1.15;
+                const overlayRightPadding = canvas.width * 0.04;
+                const overlayTopPadding = canvas.height * 0.04;
+                const overlayX = canvas.width - overlayRightPadding;
+                const overlayMaxWidth = canvas.width * 0.45; // Max 45% of width for overlay
+
+                const overlayLines = getWrappedLines(ctx, overlayText, overlayMaxWidth);
+                for (let i = 0; i < overlayLines.length; i++) {
+                    const lineY = overlayTopPadding + (i * overlayLineHeight);
+                    ctx.strokeText(overlayLines[i], overlayX, lineY);
+                    ctx.fillText(overlayLines[i], overlayX, lineY);
+                }
+            }
+            downloadBtn.disabled = false; // Enable download after any successful draw
         }
-      });
-      canvas.on("selection:cleared", function () {
-        document.getElementById("text-controls").style.display = "none";
-        document.getElementById("shape-controls").style.display = "none";
-      });
+
+        function downloadImage() {
+            if (!canvas || !currentImage) {
+                showMessage('No image to download. Please fetch a thumbnail first.', true);
+                return;
+            }
+            // Ensure canvas is up-to-date before downloading (already handled by input events)
+            // drawCanvas(); // Not strictly necessary if inputs always trigger it, but harmless
+
+            const dataURL = canvas.toDataURL('image/png');
+            const a = document.createElement('a');
+            a.href = dataURL;
+            a.download = `thumbnail_${currentVideoId || 'customized'}.png`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            showMessage('Thumbnail download started!', false);
+        }
+
+        // --- Event Listeners ---
+        fetchThumbnailBtn.addEventListener('click', fetchThumbnail);
+        
+        // Simultaneous preview: Update canvas on any input change in customization fields
+        titleTextInput.addEventListener('input', drawCanvas);
+        overlayTextInput.addEventListener('input', drawCanvas);
+        titleFontSizeInput.addEventListener('input', drawCanvas);
+        overlayFontSizeInput.addEventListener('input', drawCanvas);
+
+        downloadBtn.addEventListener('click', downloadImage);
+
+        // Initial setup
+        youtubeUrlInput.value = ''; // Clear on load
+        customizationSection.style.display = 'none'; // Hide until thumbnail is fetched
+        downloadBtn.disabled = true; // Disabled until an image is loaded and drawn
+
     </script>
-  </body>
+</body>
 </html>
